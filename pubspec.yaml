@@ -8,6 +8,8 @@ environment:
   sdk: '>=3.1.0 <4.0.0'
 
 dependencies:
+  flutter_dotenv: ^5.1.0
+
   flutter:
     sdk: flutter
   
@@ -35,8 +37,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  
-  # 暂时注释掉assets，避免目录不存在错误
-  # assets:
-  #   - assets/images/
-  #   - assets/icons/
+  assets:
+    - .env

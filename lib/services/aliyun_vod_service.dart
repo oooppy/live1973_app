@@ -2,11 +2,14 @@ import 'package:dio/dio.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
 import 'dart:math';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AliyunVodService {
   // 你的阿里云配置
-  static const String _accessKeyId = 'YOUR_ACCESS_KEY_ID';
-  static const String _accessKeySecret = 'YOUR_ACCESS_KEY_SECRET';
+  static String get accessKeyId => dotenv.env['ALIYUN_ACCESS_KEY_ID'] ?? '';
+  static String get accessKeySecret => dotenv.env['ALIYUN_ACCESS_KEY_SECRET'] ?? '';
+  //static const String _accessKeyId = 'YOUR_ACCESS_KEY_ID';
+  //static const String _accessKeySecret = 'YOUR_ACCESS_KEY_SECRET';
   static const String _regionId = 'cn-shanghai';
   
   static final Dio _dio = Dio();
