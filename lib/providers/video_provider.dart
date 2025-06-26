@@ -41,11 +41,42 @@ class VideoProvider extends ChangeNotifier {
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        if (data['success'] == true) {
+        
+        // 修改这里：直接处理数组响应
+        if (data is List) {
+          // 后端直接返回数组
+          final List<dynamic> newVideos = data;
+
+          // 转换API数据格式为前端需要的格式
+          List<Map<String, dynamic>> formattedVideos = newVideos.map((video) {
+            return {
+              'id': video['id'],
+              'title': video['title'] ?? '未知标题',
+              'thumbnail': video['thumbnail_url'] ?? 'https://via.placeholder.com/320x180?text=Live1973',
+              'videoUrl': video['video_url'] ?? '',
+              'duration': _formatDuration(video['duration'] ?? 0),
+              'views': _formatViewCount(video['view_count'] ?? 0),
+              'viewCount': video['view_count'] ?? 0,
+              'isRealVideo': video['video_url']?.isNotEmpty ?? false,
+              'description': video['description'] ?? '',
+              'status': video['status'] ?? 'active',
+            };
+          }).toList();
+
+          if (refresh) {
+            _videos = formattedVideos;
+          } else {
+            _videos.addAll(formattedVideos);
+          }
+
+          _currentPage++;
+          // 由于后端直接返回数组，我们假设如果返回的视频少于limit，就没有更多了
+          _hasMore = newVideos.length >= 20;
+        } else if (data is Map && data['success'] == true) {
+          // 如果后端返回的是包装格式（兼容性处理）
           final List<dynamic> newVideos = data['data']['videos'];
           final pagination = data['data']['pagination'];
 
-          // 转换API数据格式为前端需要的格式
           List<Map<String, dynamic>> formattedVideos = newVideos.map((video) {
             return {
               'id': video['id'],
