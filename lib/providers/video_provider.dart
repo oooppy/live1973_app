@@ -137,35 +137,105 @@ class VideoProvider extends ChangeNotifier {
     return null;
   }
 
-  // 记录播放
-  Future<void> recordView(int videoId, {int durationWatched = 0}) async {
+  // 记录播放数
+  Future<void> recordView(dynamic videoId) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/videos/$videoId/view'),
+      print('🎬 recordView被调用 - videoId: $videoId (类型: ${videoId.runtimeType})');
+      
+      if (videoId == null) {
+        print('❌ videoId 为 null，无法记录播放');
+        return;
+      }
+      
+      final String id = videoId.toString();
+      final url = '$baseUrl/videos/$id/views';
+      
+      print('📡 发送PATCH请求到: $url');
+      
+      final response = await http.patch(
+        Uri.parse(url),
         headers: {
           'Content-Type': 'application/json',
         },
-        body: json.encode({
-          'device_type': 'mobile',
-          'duration_watched': durationWatched,
-        }),
       );
-
+      
+      print('📊 响应状态码: ${response.statusCode}');
+      print('📊 响应内容: ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('✅ 播放数更新成功!');
+        
+        if (data['data'] != null) {
+          final responseData = data['data'];
+          print('📈 播放数变化: ${responseData['oldViewCount']} → ${responseData['newViewCount']}');
+          
+          // 更新本地数据
+          _updateLocalViewCount(id, responseData['newViewCount']);
+        }
+        
+        // 通知UI更新
+        notifyListeners();
+        
+      } else {
+        print('❌ 播放数更新失败: ${response.statusCode}');
+        print('❌ 错误内容: ${response.body}');
+      }
+    } catch (error) {
+      print('❌ recordView发生异常: $error');
+      print('❌ 异常类型: ${error.runtimeType}');
+    }
+  }
+  
+  // 更新本地视频列表中的播放数
+  void _updateLocalViewCount(String videoId, int newViewCount) {
+    try {
+      print('🔄 更新本地播放数 - videoId: $videoId, newCount: $newViewCount');
+      
+      for (int i = 0; i < _videos.length; i++) {
+        final video = _videos[i];
+        if (video['id'].toString() == videoId) {
+          print('📝 找到视频，更新播放数: ${video['title'] ?? video['Title']}');
+          
+          // 创建新的视频对象以触发UI更新
+          Map<String, dynamic> updatedVideo = Map<String, dynamic>.from(video);
+          updatedVideo['view_count'] = newViewCount;
+          updatedVideo['views'] = newViewCount.toString();
+          
+          _videos[i] = updatedVideo;
+          print('✅ 本地播放数已更新');
+          break;
+        }
+      }
+    } catch (error) {
+      print('❌ 更新本地播放数失败: $error');
+    }
+  }
+  
+  // 刷新单个视频的播放数（从服务器获取最新数据）
+  Future<void> refreshVideoViewCount(dynamic videoId) async {
+    try {
+      print('🔄 刷新视频播放数: $videoId');
+      
+      final String id = videoId.toString();
+      final url = '$baseUrl/videos/$id/views';
+      
+      final response = await http.get(Uri.parse(url));
+      
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success'] == true) {
-          // 更新本地播放次数
-          final videoIndex = _videos.indexWhere((v) => v['id'] == videoId);
-          if (videoIndex != -1) {
-            _videos[videoIndex]['viewCount'] = data['data']['new_view_count'];
-            _videos[videoIndex]['views'] = _formatViewCount(data['data']['new_view_count']);
-            notifyListeners();
-          }
-          print('播放记录成功: ${data['message']}');
+          final viewCount = data['data']['viewCount'];
+          print('📊 从服务器获取的最新播放数: $viewCount');
+          
+          _updateLocalViewCount(id, viewCount);
+          notifyListeners();
         }
+      } else {
+        print('❌ 刷新播放数失败: ${response.statusCode}');
       }
-    } catch (e) {
-      print('记录播放失败: $e');
+    } catch (error) {
+      print('❌ 刷新播放数异常: $error');
     }
   }
 

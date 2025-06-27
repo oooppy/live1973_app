@@ -11,6 +11,9 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  // 🔧 搜索功能开关 - 改为true可恢复搜索功能
+  static const bool _enableSearch = false;
+  
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -55,10 +58,12 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         actions: [
-          IconButton(
-            onPressed: () => _showSearch(context),
-            icon: const Icon(Icons.search, color: Colors.white),
-          ),
+          // 🔧 条件显示搜索按钮
+          if (_enableSearch) 
+            IconButton(
+              onPressed: () => _showSearch(context),
+              icon: const Icon(Icons.search, color: Colors.white),
+            ),
           IconButton(
             onPressed: () {
               context.read<VideoProvider>().refresh();
@@ -152,6 +157,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 16),
                   child: VideoCard(
+                    videoId: video['id'], // 🔧 添加这一行
                     title: video['title'] ?? '未知标题',
                     thumbnail: video['thumbnail'] ?? '',
                     videoUrl: video['videoUrl'] ?? '',
@@ -175,14 +181,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showSearch(BuildContext context) {
-    showSearch(
-      context: context,
-      delegate: VideoSearchDelegate(),
-    );
+    // 🔧 只有启用搜索时才显示搜索界面
+    if (_enableSearch) {
+      showSearch(
+        context: context,
+        delegate: VideoSearchDelegate(),
+      );
+    }
   }
 }
 
-// 搜索代理
+// 🔧 搜索代理类保留，但只在启用搜索时生效
 class VideoSearchDelegate extends SearchDelegate<String> {
   @override
   String get searchFieldLabel => '搜索视频...';
@@ -268,6 +277,7 @@ class VideoSearchDelegate extends SearchDelegate<String> {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: VideoCard(
+                  videoId: video['id'], // 🔧 添加这一行
                   title: video['title'] ?? '未知标题',
                   thumbnail: video['thumbnail'] ?? '',
                   videoUrl: video['videoUrl'] ?? '',
