@@ -5,7 +5,7 @@ class ApiConfig {
   
   // 环境配置
   static const String _localBaseUrl = 'http://localhost:3000/api';
-  static const String _productionBaseUrl = 'http://116.62.215.24:3000/api'; 
+  static const String _productionBaseUrl = 'https://live1973.cn/api'; 
   
   static String get baseUrl {
     final url = isDebug ? _localBaseUrl : _productionBaseUrl;
