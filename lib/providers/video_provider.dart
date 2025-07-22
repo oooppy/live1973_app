@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../config/api_config.dart'; 
 
 class VideoProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _videos = [];
@@ -8,14 +9,42 @@ class VideoProvider extends ChangeNotifier {
   String? _error;
   int _currentPage = 1;
   bool _hasMore = true;
-
-  // API基础URL
-  static const String baseUrl = 'http://localhost:3000/api';
   
   List<Map<String, dynamic>> get videos => _videos;
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get hasMore => _hasMore;
+
+  int _parseDuration(dynamic duration) {
+    if (duration == null) return 0;
+    
+    // 如果已经是整数（秒数），直接返回
+    if (duration is int) return duration;
+    
+    // 如果是字符串格式（如 "2:30" 或 "1:23:45"），需要转换为秒数
+    if (duration is String) {
+      try {
+        final parts = duration.split(':');
+        if (parts.length == 2) {
+          // 格式：MM:SS
+          final minutes = int.parse(parts[0]);
+          final seconds = int.parse(parts[1]);
+          return minutes * 60 + seconds;
+        } else if (parts.length == 3) {
+          // 格式：HH:MM:SS
+          final hours = int.parse(parts[0]);
+          final minutes = int.parse(parts[1]);
+          final seconds = int.parse(parts[2]);
+          return hours * 3600 + minutes * 60 + seconds;
+        }
+      } catch (e) {
+        print('时长解析错误: $duration, 错误: $e');
+        return 0;
+      }
+    }
+    
+    return 0;
+  }
 
   // 从API获取视频列表
   Future<void> fetchVideos({bool refresh = false}) async {
@@ -33,11 +62,11 @@ class VideoProvider extends ChangeNotifier {
 
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/videos?page=$_currentPage&limit=20&sort=view_count'),
+        Uri.parse('${ApiConfig.videosUrl}?page=$_currentPage&limit=20&sort=view_count'),
         headers: {
           'Content-Type': 'application/json',
         },
-      );
+      ).timeout(Duration(seconds: ApiConfig.timeoutSeconds));
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -54,7 +83,7 @@ class VideoProvider extends ChangeNotifier {
               'title': video['title'] ?? '未知标题',
               'thumbnail': video['thumbnail_url'] ?? 'https://via.placeholder.com/320x180?text=Live1973',
               'videoUrl': video['video_url'] ?? '',
-              'duration': _formatDuration(video['duration'] ?? 0),
+              'duration': _formatDuration(_parseDuration(video['duration'])), // 🔧 修复：使用 _parseDuration
               'views': _formatViewCount(video['view_count'] ?? 0),
               'viewCount': video['view_count'] ?? 0,
               'isRealVideo': video['video_url']?.isNotEmpty ?? false,
@@ -83,7 +112,7 @@ class VideoProvider extends ChangeNotifier {
               'title': video['title'] ?? '未知标题',
               'thumbnail': video['thumbnail_url'] ?? 'https://via.placeholder.com/320x180?text=Live1973',
               'videoUrl': video['video_url'] ?? '',
-              'duration': _formatDuration(video['duration'] ?? 0),
+              'duration': _formatDuration(_parseDuration(video['duration'])), // 🔧 修复：使用 _parseDuration
               'views': _formatViewCount(video['view_count'] ?? 0),
               'viewCount': video['view_count'] ?? 0,
               'isRealVideo': video['video_url']?.isNotEmpty ?? false,
@@ -119,11 +148,11 @@ class VideoProvider extends ChangeNotifier {
   Future<Map<String, dynamic>?> getVideoDetail(int videoId) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/videos/$videoId'),
+        Uri.parse('${ApiConfig.videosUrl}/$videoId'),
         headers: {
           'Content-Type': 'application/json',
         },
-      );
+      ).timeout(Duration(seconds: ApiConfig.timeoutSeconds));
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -148,7 +177,7 @@ class VideoProvider extends ChangeNotifier {
       }
       
       final String id = videoId.toString();
-      final url = '$baseUrl/videos/$id/views';
+      final url = ApiConfig.videoViewsUrl(int.parse(id));
       
       print('📡 发送PATCH请求到: $url');
       
@@ -157,7 +186,7 @@ class VideoProvider extends ChangeNotifier {
         headers: {
           'Content-Type': 'application/json',
         },
-      );
+      ).timeout(Duration(seconds: ApiConfig.timeoutSeconds));
       
       print('📊 响应状态码: ${response.statusCode}');
       print('📊 响应内容: ${response.body}');
@@ -218,7 +247,7 @@ class VideoProvider extends ChangeNotifier {
       print('🔄 刷新视频播放数: $videoId');
       
       final String id = videoId.toString();
-      final url = '$baseUrl/videos/$id/views';
+      final url = ApiConfig.videoViewsUrl(int.parse(id));
       
       final response = await http.get(Uri.parse(url));
       
@@ -243,11 +272,11 @@ class VideoProvider extends ChangeNotifier {
   Future<List<Map<String, dynamic>>> searchVideos(String keyword) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/videos/search/$keyword'),
+        Uri.parse(ApiConfig.searchUrl(keyword)),
         headers: {
           'Content-Type': 'application/json',
         },
-      );
+      ).timeout(Duration(seconds: ApiConfig.timeoutSeconds));
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -259,7 +288,7 @@ class VideoProvider extends ChangeNotifier {
               'title': video['title'] ?? '未知标题',
               'thumbnail': video['thumbnail_url'] ?? 'https://via.placeholder.com/320x180?text=Live1973',
               'videoUrl': video['video_url'] ?? '',
-              'duration': _formatDuration(video['duration'] ?? 0),
+              'duration': _formatDuration(_parseDuration(video['duration'])), // 🔧 修复：使用 _parseDuration
               'views': _formatViewCount(video['view_count'] ?? 0),
               'viewCount': video['view_count'] ?? 0,
               'isRealVideo': video['video_url']?.isNotEmpty ?? false,

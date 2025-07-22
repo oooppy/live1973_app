@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../screens/video_player_screen.dart';
+import '../config/api_config.dart';
 
 // 🔧 改为 StatefulWidget 来支持 setState
 class VideoCard extends StatefulWidget {
@@ -125,30 +126,8 @@ class _VideoCardState extends State<VideoCard> {
                     ),
                   ),
                 ),
-                // VOD视频标签
-                if (widget.videoId != null)
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: const Text(
-                        'VOD',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
+                // 🗑️ 删除：VOD视频标签（按要求移除）
+                // 原来这里有 VOD 标签，现在已删除
               ],
             ),
             // 视频信息
@@ -169,8 +148,12 @@ class _VideoCardState extends State<VideoCard> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 8),
+                  // 🔧 修改：播放次数移到右下角，移除"云端"标签
                   Row(
                     children: [
+                      // 左侧留空
+                      const Spacer(),
+                      // 🔧 播放次数移到右下角
                       Icon(
                         Icons.visibility,
                         color: Colors.grey[400],
@@ -184,30 +167,8 @@ class _VideoCardState extends State<VideoCard> {
                           fontSize: 14,
                         ),
                       ),
-                      const Spacer(),
-                      if (widget.videoId != null)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.red.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Colors.red,
-                              width: 1,
-                            ),
-                          ),
-                          child: const Text(
-                            '云端',
-                            style: TextStyle(
-                              color: Colors.red,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
+                      // 🗑️ 删除：云端标签（按要求移除）
+                      // 原来这里有"云端"标签，现在已删除
                     ],
                   ),
                 ],
@@ -345,11 +306,12 @@ class _VideoCardState extends State<VideoCard> {
   // 🔧 获取VOD播放地址
   Future<String?> _getVodPlayUrl(int videoId) async {
     try {
-      print('📡 请求VOD播放地址: http://localhost:3000/api/videos/$videoId/play');
+      final url = ApiConfig.videoPlayUrl(videoId);
+      print('📡 请求VOD播放地址: $url');
       
       final response = await http.get(
-        Uri.parse('http://localhost:3000/api/videos/$videoId/play'),
-      );
+        Uri.parse(url),
+      ).timeout(Duration(seconds: ApiConfig.timeoutSeconds));
       
       print('📊 VOD API响应状态: ${response.statusCode}');
       print('📊 VOD API响应内容: ${response.body}');
@@ -383,9 +345,9 @@ class _VideoCardState extends State<VideoCard> {
   Future<void> _recordView(int videoId) async {
     try {
       final response = await http.patch(
-        Uri.parse('http://localhost:3000/api/videos/$videoId/views'),
+        Uri.parse(ApiConfig.videoViewsUrl(videoId)),
         headers: {'Content-Type': 'application/json'},
-      );
+      ).timeout(Duration(seconds: ApiConfig.timeoutSeconds));
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);

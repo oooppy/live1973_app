@@ -21,7 +21,7 @@ dependencies:
   
   # 视频播放
   video_player: ^2.8.1
-  flutter_aliplayer: ^5.4.1
+  # flutter_aliplayer: ^5.4.1  # 临时移除，避免兼容性问题
   
   # UI组件
   cupertino_icons: ^1.0.2
